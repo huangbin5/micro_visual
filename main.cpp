@@ -1,5 +1,6 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include "data.cpp"
 
 using namespace std;
 using namespace cv;
@@ -9,9 +10,11 @@ const int Direct[][2] = {{-1, 0},
                          {0,  1},
                          {1,  0},
                          {0,  -1}};
+string imgName;
 int minX = 2000, maxX = 0, minY = 2000, maxY = 0;
+bool printLog = true;
 
-// 连通域顶点
+// 连通域区域
 Rect Regions[10000];
 // 连通域编号
 Mat RegionNum;
@@ -20,7 +23,8 @@ int Number = 0;
 Rect Patterns[64][64];
 vector<Mat> Template[7];
 char Character[] = "SOCLT+-";
-char Result[64][64];
+int Result[64][64];
+char CharacterResult[64][64];
 
 // 更新4个"顶点"的坐标
 void updateContour(int y, int x) {
@@ -31,13 +35,14 @@ void updateContour(int y, int x) {
 }
 
 // 读取图像并转换为灰度图
-Mat readGray(const string &imgName) {
+Mat readGray(const string &name) {
     // 读取图像
-    Mat img = imread(BaseDir + "" + imgName);
+    Mat img = imread(BaseDir + "" + name);
     // 将图像转化为灰度图
     cvtColor(img, img, COLOR_BGR2GRAY);
     imwrite(BaseDir + "s_gray.jpg", img);
-    cout << "readGray done" << endl;
+    if (printLog)
+        cout << "readGray done" << endl;
     return img;
 }
 
@@ -54,7 +59,8 @@ Mat binaryzation(const Mat &img) {
             res.at<uchar>(i, j) = img.at<uchar>(i, j) > sum / 225 ? 255 : 0;
         }
     imwrite(BaseDir + "s_binaryzation.jpg", res);
-    cout << "binaryzation done" << endl;
+    if (printLog)
+        cout << "binaryzation done" << endl;
     return res;
 }
 
@@ -64,7 +70,8 @@ Mat threshold(const Mat &img) {
     adaptiveThreshold(img, img, 255, ADAPTIVE_THRESH_MEAN_C,
                       THRESH_BINARY, 15, 0);
     imwrite(BaseDir + "s_thresh_mean.jpg", img);
-    cout << "threshold done" << endl;
+    if (printLog)
+        cout << "threshold done" << endl;
     return res;
 }
 
@@ -73,7 +80,8 @@ Mat average(const Mat &img) {
     Mat res(img);
     blur(img, img, Size(3, 3));
     imwrite(BaseDir + "s_average.jpg", img);
-    cout << "average done" << endl;
+    if (printLog)
+        cout << "average done" << endl;
     return res;
 }
 
@@ -82,7 +90,8 @@ Mat median(const Mat &img) {
     Mat res(img);
     medianBlur(img, img, 3);
     imwrite(BaseDir + "s_median.jpg", img);
-    cout << "median done" << endl;
+    if (printLog)
+        cout << "median done" << endl;
     return res;
 }
 
@@ -92,7 +101,8 @@ Mat open(const Mat &img, int w) {
     Mat ele = getStructuringElement(MORPH_RECT, Size(w, w));
     morphologyEx(img, img, MORPH_OPEN, ele);
     imwrite(BaseDir + "s_open.jpg", img);
-    cout << "open done" << endl;
+    if (printLog)
+        cout << "open done" << endl;
     return res;
 }
 
@@ -102,7 +112,8 @@ Mat close(const Mat &img, int w) {
     Mat ele = getStructuringElement(MORPH_RECT, Size(w, w));
     morphologyEx(img, img, MORPH_CLOSE, ele);
     imwrite(BaseDir + "s_close.jpg", img);
-    cout << "close done" << endl;
+    if (printLog)
+        cout << "close done" << endl;
     return res;
 }
 
@@ -161,7 +172,8 @@ void domain(Mat &img, int minSize) {
                     Regions[Number] = Rect(minX, minY, maxX - minX + 1, maxY - minY + 1);
             }
     imwrite(BaseDir + "s_domain.jpg", img);
-    cout << "domain done" << endl;
+    if (printLog)
+        cout << "domain done" << endl;
 }
 
 void solution1() {
@@ -196,23 +208,25 @@ void solution3() {
     waitKey();
 }
 
-Mat readHSV(const string &imgName) {
+Mat readHSV(const string &name) {
     // 读取图像
-    Mat img = imread(BaseDir + "" + imgName);
+    Mat img = imread(BaseDir + "" + name);
     // 将图像转化为HSV
     cvtColor(img, img, COLOR_BGR2HSV);
     imwrite(BaseDir + "s_hsv.jpg", img);
-    cout << "readHSV done" << endl;
+    if (printLog)
+        cout << "readHSV done" << endl;
     return img;
 }
 
-Mat readHLS(const string &imgName) {
+Mat readHLS(const string &name) {
     // 读取图像
-    Mat img = imread(BaseDir + "" + imgName);
+    Mat img = imread(BaseDir + "" + name);
     // 将图像转化为HSL
     cvtColor(img, img, COLOR_BGR2HLS);
     imwrite(BaseDir + "s_hls.jpg", img);
-    cout << "readHLS done" << endl;
+    if (printLog)
+        cout << "readHLS done" << endl;
     return img;
 }
 
@@ -225,7 +239,8 @@ void maxBright(Mat &img) {
         }
     cvtColor(img, img, COLOR_HSV2BGR);
     imwrite(BaseDir + "s_max.jpg", img);
-    cout << "maxBright done" << endl;
+    if (printLog)
+        cout << "maxBright done" << endl;
 }
 
 // 提取HSV中绿色区域
@@ -233,7 +248,8 @@ Mat getGreenRegion(const Mat &img) {
     Mat greenImg;
     inRange(img, Scalar(50, 0, 0), Scalar(100, 255, 255), greenImg);
     imwrite(BaseDir + "s_green.jpg", greenImg);
-    cout << "getGreenRegion done" << endl;
+    if (printLog)
+        cout << "getGreenRegion done" << endl;
     return greenImg;
 }
 
@@ -245,7 +261,8 @@ void removeDark(Mat &grayImg, Mat &hsvImg) {
                 grayImg.at<uchar>(i, j) = 0;
         }
     imwrite(BaseDir + "s_dark.jpg", grayImg);
-    cout << "removeDark done" << endl;
+    if (printLog)
+        cout << "removeDark done" << endl;
 }
 
 void mark(Mat &grayImg) {
@@ -254,7 +271,8 @@ void mark(Mat &grayImg) {
         grayImg.at<uchar>(i, 515) = 255;
     }
     imwrite(BaseDir + "s_mark.jpg", grayImg);
-    cout << "mark done" << endl;
+    if (printLog)
+        cout << "mark done" << endl;
 }
 
 // 删除连通域
@@ -299,6 +317,7 @@ Mat extract(Mat &grayImg, Mat &hsvImg) {
     // 只保留一个连通域
     domain(grayImg, 10000);
     // 涂黑背景，保留7像素边框进行剪裁
+    minX = 2000, maxX = 0, minY = 2000, maxY = 0;
     for (int i = 0; i < grayImg.rows; ++i) {
         for (int j = 0; j < grayImg.cols; ++j) {
             if (grayImg.at<uchar>(i, j) == 0)
@@ -340,7 +359,8 @@ Mat extract(Mat &grayImg, Mat &hsvImg) {
     cvtColor(res, res, COLOR_HSV2BGR);
     cvtColor(res, res, COLOR_BGR2GRAY);
     imwrite(BaseDir + "s_extract.jpg", res);
-    cout << "extract done" << endl;
+    if (printLog)
+        cout << "extract done" << endl;
     return res;
 }
 
@@ -365,12 +385,13 @@ Mat threshBright(const Mat &img) {
                     res.at<uchar>(y, x) = 255;
             }
     imwrite(BaseDir + "s_bright.jpg", res);
-    cout << "threshBright done" << endl;
+    if (printLog)
+        cout << "threshBright done" << endl;
     return res;
 }
 
 // 识别目标
-char recognize(Mat target) {
+int recognize(Mat target) {
     // 先将目标缩放至13x13
     int row = target.rows, col = target.cols;
     if (row != 13) {
@@ -441,13 +462,13 @@ char recognize(Mat target) {
                 maxIndex = h;
             }
         }
-    return Character[maxIndex];
+    return maxIndex;
 }
 
 void printResult() {
-    for (int i = 0; i < 64; ++i) {
-        for (int j = 0; j < 64; ++j)
-            cout << Result[i][j] << " ";
+    for (auto &row : CharacterResult) {
+        for (char ele : row)
+            cout << ele << " ";
         cout << endl;
     }
 }
@@ -474,6 +495,7 @@ void search(Mat &img) {
     }
     imwrite(BaseDir + "split/0_0.jpg", img(Patterns[0][0]));
     Result[0][0] = recognize(img(Patterns[0][0]));
+    CharacterResult[0][0] = Character[Result[0][0]];
     // 一个个图案遍历
     int row = 0, col = 0;
     while (row < 63 || col < 63) {
@@ -502,10 +524,10 @@ void search(Mat &img) {
                         ++showTimes[number];
                 }
         int maxTimes = 0, maxTimesNum = 0;
-        for (auto it = showTimes.begin(); it != showTimes.end(); ++it)
-            if (it->second > maxTimes) {
-                maxTimesNum = it->first;
-                maxTimes = it->second;
+        for (auto &it : showTimes)
+            if (it.second > maxTimes) {
+                maxTimesNum = it.first;
+                maxTimes = it.second;
             }
         if (maxTimesNum == 0) {
             cout << "寻找连通域(" << row << ", " << col << ")出错" << endl;
@@ -616,9 +638,9 @@ void search(Mat &img) {
             imwrite(BaseDir + "split/" + to_string(row) + "_" + to_string(col) + ".jpg",
                     img(Patterns[row][col]));
             Result[row][col] = recognize(img(Patterns[row][col]));
+            CharacterResult[row][col] = Character[Result[row][col]];
         }
     }
-    printResult();
 }
 
 // 制作13x13的标准图案
@@ -689,9 +711,18 @@ void makeTemplate() {
             imwrite(BaseDir + "template/" + to_string(i) + to_string(j) + ".jpg", Template[i][j]);
 }
 
+void caculAccuracy() {
+    int cnt = 0;
+    for (int i = 0; i < 64; ++i)
+        for (int j = 0; j < 64; ++j)
+            if (Result[i][j] == sevenPatterns[i][j])
+                ++cnt;
+    cout << imgName << "准确率为" << (double) cnt / 64 / 64 * 100 << "%" << endl;
+}
+
 void hsvSolution() {
-    Mat grayImg = readGray("6.jpg");
-    Mat hsvImg = readHSV("6.jpg");
+    Mat grayImg = readGray(imgName);
+    Mat hsvImg = readHSV(imgName);
     // 先用40亮度的阈值去除外围背景
     removeDark(grayImg, hsvImg);
     // 选定图像区域：左400右1500，去除背景噪点
@@ -703,26 +734,20 @@ void hsvSolution() {
     open(threshImg, 2);
     close(threshImg, 2);
     domain(threshImg, 10);
-    makeTemplate();
     search(threshImg);
-}
-
-void test() {
-    Mat img = imread(BaseDir + "11.png");
-    Mat multi[3];
-    split(img, multi);
-    for (int i = 0; i < 3; ++i)
-        imshow(to_string(i + 1), multi[i]);
-    Mat res;
-    merge(multi, 3, res);
-    imshow("res", res);
-    waitKey();
+//    printResult();
+    caculAccuracy();
 }
 
 int main() {
 //    solution1();
 //    solution2();
 //    solution3();
-    hsvSolution();
+    printLog = false;
+    makeTemplate();
+    for (int i = 1; i <= 6; ++i) {
+        imgName = to_string(i) + ".jpg";
+        hsvSolution();
+    }
     return 0;
 }
