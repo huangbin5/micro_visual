@@ -46,55 +46,6 @@ Mat readGray(const string &name) {
     return img;
 }
 
-// 自定义二值化
-Mat binaryzation(const Mat &img) {
-    Mat res(img);
-    int len = 7;
-    for (int i = len; i < res.rows - len; ++i)
-        for (int j = len; j < res.cols - len; ++j) {
-            double sum = 0;
-            for (int x = -len; x <= len; ++x)
-                for (int y = -len; y <= len; ++y)
-                    sum += img.at<uchar>(i + x, j + y);
-            res.at<uchar>(i, j) = img.at<uchar>(i, j) > sum / 225 ? 255 : 0;
-        }
-    imwrite(BaseDir + "s_binaryzation.jpg", res);
-    if (printLog)
-        cout << "binaryzation done" << endl;
-    return res;
-}
-
-// 局部阈值化
-Mat threshold(const Mat &img) {
-    Mat res(img);
-    adaptiveThreshold(img, img, 255, ADAPTIVE_THRESH_MEAN_C,
-                      THRESH_BINARY, 15, 0);
-    imwrite(BaseDir + "s_thresh_mean.jpg", img);
-    if (printLog)
-        cout << "threshold done" << endl;
-    return res;
-}
-
-// 均值滤波
-Mat average(const Mat &img) {
-    Mat res(img);
-    blur(img, img, Size(3, 3));
-    imwrite(BaseDir + "s_average.jpg", img);
-    if (printLog)
-        cout << "average done" << endl;
-    return res;
-}
-
-// 中值滤波
-Mat median(const Mat &img) {
-    Mat res(img);
-    medianBlur(img, img, 3);
-    imwrite(BaseDir + "s_median.jpg", img);
-    if (printLog)
-        cout << "median done" << endl;
-    return res;
-}
-
 // 开运算
 Mat open(const Mat &img, int w) {
     Mat res(img);
@@ -176,38 +127,6 @@ void domain(Mat &img, int minSize) {
         cout << "domain done" << endl;
 }
 
-void solution1() {
-    Mat img = readGray("6.jpg");
-    img = threshold(img);
-    img = median(img);
-    img = open(img, 2);
-    img = close(img, 2);
-    domain(img, 20);
-    imwrite(BaseDir + "solution1.jpg", img);
-}
-
-void solution2() {
-    Mat img = readGray("6.jpg");
-    img = average(img);
-    img = binaryzation(img);
-    domain(img, 20);
-    img = open(img, 2);
-    img = close(img, 2);
-    imwrite(BaseDir + "solution2.jpg", img);
-}
-
-void solution3() {
-    Mat img = readGray("0.bmp");
-    Mat res_x, res_y, res;
-    Sobel(img, res_x, CV_8U, 1, 0, 3, 1, 0, BORDER_DEFAULT);
-    Sobel(img, res_y, CV_8U, 0, 1, 3, 1, 0, BORDER_DEFAULT);
-    convertScaleAbs(res_x, res_x);
-    convertScaleAbs(res_y, res_y);
-    addWeighted(res_x, 0.5, res_y, 0.5, 0, res);
-    imwrite(BaseDir + "s_sobel.jpg", res);
-    waitKey();
-}
-
 Mat readHSV(const string &name) {
     // 读取图像
     Mat img = imread(BaseDir + "" + name);
@@ -217,40 +136,6 @@ Mat readHSV(const string &name) {
     if (printLog)
         cout << "readHSV done" << endl;
     return img;
-}
-
-Mat readHLS(const string &name) {
-    // 读取图像
-    Mat img = imread(BaseDir + "" + name);
-    // 将图像转化为HSL
-    cvtColor(img, img, COLOR_BGR2HLS);
-    imwrite(BaseDir + "s_hls.jpg", img);
-    if (printLog)
-        cout << "readHLS done" << endl;
-    return img;
-}
-
-// 将饱和度和亮度设置为最大值
-void maxBright(Mat &img) {
-    for (int i = 0; i < img.rows; ++i)
-        for (int j = 0; j < img.cols; ++j) {
-            img.at<Vec3b>(i, j)[1] *= 2;
-            img.at<Vec3b>(i, j)[2] *= 2;
-        }
-    cvtColor(img, img, COLOR_HSV2BGR);
-    imwrite(BaseDir + "s_max.jpg", img);
-    if (printLog)
-        cout << "maxBright done" << endl;
-}
-
-// 提取HSV中绿色区域
-Mat getGreenRegion(const Mat &img) {
-    Mat greenImg;
-    inRange(img, Scalar(50, 0, 0), Scalar(100, 255, 255), greenImg);
-    imwrite(BaseDir + "s_green.jpg", greenImg);
-    if (printLog)
-        cout << "getGreenRegion done" << endl;
-    return greenImg;
 }
 
 void removeDark(Mat &grayImg, Mat &hsvImg) {
@@ -263,40 +148,6 @@ void removeDark(Mat &grayImg, Mat &hsvImg) {
     imwrite(BaseDir + "s_dark.jpg", grayImg);
     if (printLog)
         cout << "removeDark done" << endl;
-}
-
-void mark(Mat &grayImg) {
-    for (int i = 0; i < grayImg.rows; ++i) {
-        grayImg.at<uchar>(i, 500) = 255;
-        grayImg.at<uchar>(i, 515) = 255;
-    }
-    imwrite(BaseDir + "s_mark.jpg", grayImg);
-    if (printLog)
-        cout << "mark done" << endl;
-}
-
-// 删除连通域
-void deleteRegion(Mat &img, int x, int y) {
-    int direct[][2] = {{-1, 0},
-                       {0,  1},
-                       {1,  0},
-                       {0,  -1}};
-    queue<pair<int, int>> candidate;
-    candidate.push(make_pair(x, y));
-    img.at<uchar>(x, y) = 0;
-    while (!candidate.empty()) {
-        pair<int, int> cur = candidate.front();
-        candidate.pop();
-        x = cur.first, y = cur.second;
-        for (auto dir : direct) {
-            int nx = x + dir[0], ny = y + dir[1];
-            if (img.at<uchar>(nx, ny) != 0) {
-                candidate.push(make_pair(nx, ny));
-                img.at<uchar>(nx, ny) = 0;
-            }
-        }
-    }
-    imwrite(BaseDir + "delete/s_delete.jpg", img);
 }
 
 // 提取图像区域，为方便处理可以加几个像素的黑色边框
@@ -735,19 +586,18 @@ void hsvSolution() {
     close(threshImg, 2);
     domain(threshImg, 10);
     search(threshImg);
-//    printResult();
+    printResult();
     caculAccuracy();
 }
 
 int main() {
-//    solution1();
-//    solution2();
-//    solution3();
-    printLog = false;
+    printLog = true;
     makeTemplate();
-    for (int i = 1; i <= 6; ++i) {
-        imgName = to_string(i) + ".jpg";
-        hsvSolution();
-    }
+    imgName = "6.jpg";
+    hsvSolution();
+//    for (int i = 1; i <= 6; ++i) {
+//        imgName = to_string(i) + ".jpg";
+//        hsvSolution();
+//    }
     return 0;
 }
