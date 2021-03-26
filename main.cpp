@@ -19,10 +19,11 @@ Rect Regions[10000];
 // 连通域编号
 Mat RegionNum;
 int Number = 0;
-// 切割得到的图案(64, 64)
+// 切割得到的图案坐标(64, 64)
 Rect Patterns[64][64];
 vector<Mat> Template[7];
 char Character[] = "SOCLT+-";
+// 图案识别的结果(分别以数字和字符表示)
 int Result[64][64];
 char CharacterResult[64][64];
 
@@ -562,12 +563,27 @@ void makeTemplate() {
             imwrite(BaseDir + "template/" + to_string(i) + to_string(j) + ".jpg", Template[i][j]);
 }
 
-void caculAccuracy() {
+// 计算准确率；显示错误识别的图案
+void check(Mat &img) {
+    for (int i = 0; i < img.rows; ++i)
+        for (int j = 0; j < img.cols; ++j)
+            if (img.at<uchar>(i, j) == 255)
+                img.at<uchar>(i, j) = 127;
     int cnt = 0;
     for (int i = 0; i < 64; ++i)
         for (int j = 0; j < 64; ++j)
             if (Result[i][j] == sevenPatterns[i][j])
                 ++cnt;
+            else {
+                Rect region = Patterns[i][j];
+                for (int y = 0; y < region.height; ++y)
+                    for (int x = 0; x < region.width; ++x)
+                        if (img.at<uchar>(region.y + y, region.x + x) == 127)
+                            img.at<uchar>(region.y + y, region.x + x) = 255;
+            }
+    imwrite(BaseDir + "check/" + imgName, img);
+    if (printLog)
+        cout << "check done" << endl;
     cout << imgName << "准确率为" << (double) cnt / 64 / 64 * 100 << "%" << endl;
 }
 
@@ -587,17 +603,17 @@ void hsvSolution() {
     domain(threshImg, 10);
     search(threshImg);
     printResult();
-    caculAccuracy();
+    check(threshImg);
 }
 
 int main() {
     printLog = true;
     makeTemplate();
-    imgName = "6.jpg";
-    hsvSolution();
-//    for (int i = 1; i <= 6; ++i) {
-//        imgName = to_string(i) + ".jpg";
-//        hsvSolution();
-//    }
+//    imgName = "6.jpg";
+//    hsvSolution();
+    for (int i = 1; i <= 6; ++i) {
+        imgName = to_string(i) + ".jpg";
+        hsvSolution();
+    }
     return 0;
 }
